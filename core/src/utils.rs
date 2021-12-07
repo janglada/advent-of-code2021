@@ -14,16 +14,15 @@ error_chain! {
 }
 
 pub async fn donwload_puzzle(day: u8, n: u8) -> Result<String> {
-    println!("exists*************************");
     let s = format!("./inputs/day_{}", day);
     fs::create_dir_all("./inputs/");
     // println!("{}", s.clone());
     let exists = Path::new(&s).exists();
-    println!("exists: '{}'", exists);
 
     let cookie = include_str!("../cookie.txt");
-    println!("cookie: '{}'", cookie);
+    println!("using cookie: '{}'", cookie);
     if !exists {
+        println!("file {} does not exist, downloading: ", exists);
         let target = format!("https://adventofcode.com/2021/day/{}/input", day);
         let client = reqwest::Client::new();
         let session = format!("session={cookie}", cookie = cookie);
