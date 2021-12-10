@@ -6,7 +6,7 @@ use std::io::Error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<Error>> {
-    let input: String = donwload_puzzle(1, 1).await.unwrap();
+    let input: String = donwload_puzzle(1).await.unwrap();
     let mut v: Vec<u32> = input
         .lines()
         .map(|line| line.to_string().parse().unwrap())

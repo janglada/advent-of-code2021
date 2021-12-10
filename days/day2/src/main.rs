@@ -52,7 +52,7 @@ impl State {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<Error>> {
-    let input: String = donwload_puzzle(2, 1).await.unwrap();
+    let input: String = donwload_puzzle(2).await.unwrap();
     let instructions: Vec<Instruction> = input
         .lines()
         .map(|l| {

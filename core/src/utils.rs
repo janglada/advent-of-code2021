@@ -1,10 +1,8 @@
 use error_chain::error_chain;
-use reqwest::header::USER_AGENT;
 use std::fs;
 use std::fs::File;
 use std::io::copy;
 use std::path::Path;
-use tempfile::Builder;
 
 error_chain! {
      foreign_links {
@@ -12,8 +10,8 @@ error_chain! {
          HttpRequest(reqwest::Error);
      }
 }
-
-pub async fn donwload_puzzle(day: u8, n: u8) -> Result<String> {
+#[allow(unused_must_use)]
+pub async fn donwload_puzzle(day: u8) -> Result<String> {
     let s = format!("./inputs/day_{}", day);
     fs::create_dir_all("./inputs/");
     // println!("{}", s.clone());
@@ -54,6 +52,6 @@ mod tests {
 
     #[test]
     fn test_add() {
-        donwload_puzzle(1, 1);
+        donwload_puzzle(1);
     }
 }
