@@ -2,7 +2,6 @@ extern crate core;
 
 use core::utils::donwload_puzzle;
 use itertools::Itertools;
-use std::io::Error;
 
 struct Bits {
     bits: Vec<i32>,
@@ -29,7 +28,7 @@ impl Bits {
 }
 
 pub async fn solve_part1() {
-    let input: String = donwload_puzzle(3, 1).await.unwrap();
+    let input: String = donwload_puzzle(3).await.unwrap();
 
     let the_bits = input.lines().fold(Bits::default(12), |mut bits, value| {
         value
@@ -56,10 +55,10 @@ pub async fn solve_part1() {
         })
         .join("");
 
-    let gammaInt = isize::from_str_radix(gamma_str.as_str(), 2).unwrap();
-    let epsilonInt = isize::from_str_radix(epsilon.as_str(), 2).unwrap();
-    println!(" {}", gammaInt);
-    println!(" {}", epsilonInt);
-    println!(" {}", gammaInt * epsilonInt);
+    let gamma_int = isize::from_str_radix(gamma_str.as_str(), 2).unwrap();
+    let epsilon_int = isize::from_str_radix(epsilon.as_str(), 2).unwrap();
+    println!(" {}", gamma_int);
+    println!(" {}", epsilon_int);
+    println!(" {}", gamma_int * epsilon_int);
     println!(" {:?}", the_bits.bits);
 }
