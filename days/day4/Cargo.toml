@@ -9,3 +9,4 @@ edition = "2021"
 itertools = "0.10.1"
 core = { path = "../../core" }
 tokio = { version = "1", features = ["full"] }
+ansi_term = "0.12"
