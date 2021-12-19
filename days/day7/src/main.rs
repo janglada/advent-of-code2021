@@ -8,7 +8,7 @@ use std::io::Error;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<Error>> {
-    solve_part1().await;
+    // solve_part1().await;
     solve_part2().await;
 
     Ok(())
