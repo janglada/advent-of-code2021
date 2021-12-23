@@ -1,12 +1,12 @@
 extern crate core;
 
 use core::utils::donwload_puzzle;
-use std::slice::Iter;
+
 // use crate::part2::Digit::One;
 use crate::part2::Digit::*;
 
 pub async fn solve_part2() {
-    let input: String = donwload_puzzle(8).await.unwrap();
+    let _input: String = donwload_puzzle(8).await.unwrap();
 }
 enum Digit {
     One,
@@ -116,8 +116,8 @@ fn parse(input: String) -> Vec<Input> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cmp;
-    use std::collections::HashMap;
+    
+    
 
     #[test]
     fn masks1() {
@@ -134,7 +134,7 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
         let inputs: Vec<Input> = parse(input.to_string());
 
-        let num = inputs.iter().for_each(|inp| println!("{:?}", inp.digits));
+        let _num = inputs.iter().for_each(|inp| println!("{:?}", inp.digits));
 
         let num = inputs
             .iter()

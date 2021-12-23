@@ -85,8 +85,8 @@ fn parse(input: String) -> Vec<Input> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cmp;
-    use std::collections::HashMap;
+    
+    
 
     #[test]
     fn masks1() {
@@ -103,7 +103,7 @@ gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce
 
         let inputs: Vec<Input> = parse(input.to_string());
 
-        let num = inputs.iter().for_each(|inp| println!("{:?}", inp.digits));
+        let _num = inputs.iter().for_each(|inp| println!("{:?}", inp.digits));
 
         let num = inputs
             .iter()
