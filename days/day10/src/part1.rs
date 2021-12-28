@@ -15,6 +15,21 @@ use core::utils::donwload_puzzle;
 
 pub async fn solve_part1() {
     let input: String = donwload_puzzle(10).await.unwrap();
+    let total_score = parse(input)
+        .iter()
+        .map(|l| {
+            //  println!("{:?}", l);
+            l.clone()
+                .into_iter()
+                .find(|&score| {
+                    //   println!("COUNTER {}", iter_row);
+                    score != 0
+                })
+                .unwrap_or(0 as u32)
+        })
+        .sum::<u32>();
+
+    println!("total_score {}", total_score)
 }
 #[derive(Debug, Clone, Copy)]
 pub enum LegalChars {
@@ -78,6 +93,7 @@ struct Line(Vec<LegalChars>);
 pub struct ChunksIntoIterator {
     iter: ::std::vec::IntoIter<LegalChars>,
     counters: Counters,
+    stack: Vec<LegalChars>,
 }
 
 #[derive(Debug, Clone)]
@@ -99,57 +115,58 @@ impl fmt::Display for Counters {
 }
 
 impl<'a> Iterator for ChunksIntoIterator {
-    type Item = (Counters, LegalChars);
-    fn next(&mut self) -> Option<(Counters, LegalChars)> {
+    type Item = u32;
+    fn next(&mut self) -> Option<u32> {
         match self.iter.next() {
             None => None,
             Some(c) => {
-                match c {
-                    ClosingSquareBracket => {
-                        self.counters.square_bracket = self.counters.square_bracket - 1;
-                    }
-                    ClosingParenthesis => {
-                        self.counters.parenthesis = self.counters.parenthesis - 1;
-                    }
-                    ClosingAngleBracket => {
-                        self.counters.angle_bracket = self.counters.angle_bracket - 1;
-                    }
-                    ClosingBraces => {
-                        self.counters.braces = self.counters.braces - 1;
-                    }
-
-                    OpeningSquareBracket => {
-                        self.counters.square_bracket = self.counters.square_bracket + 1;
-                    }
-                    OpeningParenthesis => {
-                        self.counters.parenthesis = self.counters.parenthesis + 1;
-                    }
-                    OpeningAngleBracket => {
-                        self.counters.angle_bracket = self.counters.angle_bracket + 1;
-                    }
-                    OpeningBraces => {
-                        self.counters.braces = self.counters.braces + 1;
+                return match c {
+                    ClosingSquareBracket => match self.stack.last() {
+                        Some(LegalChars::OpeningSquareBracket) => {
+                            Some(self.stack.pop().unwrap().score())
+                        }
+                        _ => Some(LegalChars::ClosingSquareBracket.score()),
+                    },
+                    ClosingParenthesis => match self.stack.last() {
+                        Some(LegalChars::OpeningParenthesis) => {
+                            Some(self.stack.pop().unwrap().score())
+                        }
+                        _ => Some(LegalChars::ClosingParenthesis.score()),
+                    },
+                    ClosingAngleBracket => match self.stack.last() {
+                        Some(LegalChars::OpeningAngleBracket) => {
+                            Some(self.stack.pop().unwrap().score())
+                        }
+                        _ => Some(LegalChars::ClosingAngleBracket.score()),
+                    },
+                    ClosingBraces => match self.stack.last() {
+                        Some(LegalChars::OpeningBraces) => Some(self.stack.pop().unwrap().score()),
+                        _ => Some(LegalChars::ClosingBraces.score()),
+                    },
+                    a => {
+                        self.stack.push(a);
+                        Some(0)
                     }
                 }
-
-                Some((self.counters.clone(), c))
             }
         }
     }
 }
 impl IntoIterator for Line {
-    type Item = (Counters, LegalChars);
+    type Item = u32;
     type IntoIter = ChunksIntoIterator;
 
     fn into_iter(self) -> Self::IntoIter {
         ChunksIntoIterator {
             iter: self.0.into_iter(),
+
             counters: Counters {
                 square_bracket: 0,
                 braces: 0,
                 angle_bracket: 0,
                 parenthesis: 0,
             },
+            stack: vec![],
         }
     }
 }
@@ -205,25 +222,16 @@ mod tests {
     #[test]
     fn t1() {
         let line = Line::parse("[<>({}){}[([])<>]]".to_string());
-        let op = line.clone().into_iter().find(|(iter_row, chars)| {
+        let op = line.clone().into_iter().find(|&score| {
             //   println!("COUNTER {}", iter_row);
-            iter_row.angle_bracket < 0
-                || iter_row.square_bracket < 0
-                || iter_row.braces < 0
-                || iter_row.parenthesis < 0
+            score != 0
         });
         assert!(op.is_none())
     }
     #[test]
     fn t2() {
         let line = Line::parse("{([(<{}[<>[]}>{[]{[(<()>".to_string());
-        let op = line.clone().into_iter().find(|(iter_row, chars)| {
-            println!("COUNTER {}", iter_row);
-            iter_row.angle_bracket < 0
-                || iter_row.square_bracket < 0
-                || iter_row.braces < 0
-                || iter_row.parenthesis < 0
-        });
+        let op = line.clone().into_iter().find(|&score| score != 0);
         assert!(op.is_some())
     }
 
@@ -245,21 +253,13 @@ mod tests {
             .iter()
             .map(|l| {
                 //  println!("{:?}", l);
-                let last_char = l.clone().into_iter().find(|(iter_row, chars)| {
-                    //   println!("COUNTER {}", iter_row);
-                    iter_row.angle_bracket < 0
-                        || iter_row.square_bracket < 0
-                        || iter_row.braces < 0
-                        || iter_row.parenthesis < 0
-                });
-
-                match last_char {
-                    None => 0,
-                    Some((c, lc)) => {
-                        println!("CHAR {} {}", lc, lc.score());
-                        lc.score()
-                    }
-                }
+                l.clone()
+                    .into_iter()
+                    .find(|&score| {
+                        //   println!("COUNTER {}", iter_row);
+                        score != 0
+                    })
+                    .unwrap_or(0 as u32)
             })
             .sum::<u32>();
         println!("total_score {}", total_score)
