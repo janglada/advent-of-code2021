@@ -2,13 +2,37 @@ extern crate core;
 
 use crate::shared::{AdjacencyList, TreeNodeType};
 use core::utils::donwload_puzzle;
-use itertools::Itertools;
+use itertools::{cloned, Itertools};
 use std::cmp;
 use std::collections::HashMap;
 use std::ops::Range;
 use std::vec::IntoIter;
 
-pub async fn solve_part1() {}
+pub async fn solve_part1() {
+    // let mut adj = AdjacencyList::new();
+    // donwload_puzzle(12).await.unwrap().lines().for_each(|s| {
+    //     let mut split_iter = s.clone().split("-");
+    //     let n1 = TreeNodeType::from_text(split_iter.next().unwrap());
+    //     let n2 = TreeNodeType::from_text(split_iter.next().unwrap());
+    //     adj.add(n1, n2);
+    // });
+    //
+    // // let root = adj.get_start();
+    // let mut res = Some(vec![vec![TreeNodeType::Start]]);
+    //
+    // while res.as_ref().unwrap().into_iter().any(|v| {
+    //     if let Some(TreeNodeType::End) = v.last() {
+    //         false
+    //     } else {
+    //         // Destructure failed. Change to the failure case.
+    //         true
+    //     }
+    // }) {
+    //     res = adj.map_until2(&mut res.unwrap());
+    // }
+    //
+    // dbg!("{}", res.unwrap().len());
+}
 
 fn children_of(n: i32) -> IntoIter<i32> {
     let v = match n {
@@ -58,19 +82,49 @@ mod tests {
 
     #[test]
     fn tp1() {
-        let input = r#"start-A
-start-b
-A-c
-A-b
-b-d
-A-end
-b-end"#;
+        let input = r#"mx-IQ
+mx-HO
+xq-start
+start-HO
+IE-qc
+HO-end
+oz-xq
+HO-ni
+ni-oz
+ni-MU
+sa-IE
+IE-ni
+end-sa
+oz-sa
+MU-start
+MU-sa
+oz-IE
+HO-xq
+MU-xq
+IE-end
+MU-mx"#;
         let mut adj = AdjacencyList::new();
         input.lines().for_each(|s| {
             let mut split_iter = s.split("-");
             let n1 = TreeNodeType::from_text(split_iter.next().unwrap());
             let n2 = TreeNodeType::from_text(split_iter.next().unwrap());
             adj.add(n1, n2);
-        })
+        });
+        let root = adj.get_start();
+        let mut res = Some(vec![vec![TreeNodeType::Start]]);
+
+        while res.as_ref().unwrap().into_iter().any(|v| {
+            if let Some(TreeNodeType::End) = v.last() {
+                false
+            } else {
+                // Destructure failed. Change to the failure case.
+                true
+            }
+        }) {
+            res = adj.map_until2(&mut res.unwrap());
+        }
+
+        dbg!("{}", res.unwrap().len());
+        // let root = adj.get_start();
     }
 }
