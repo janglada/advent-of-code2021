@@ -98,7 +98,17 @@ impl AdjacencyList {
                                 // avoid "c"repetitions of
                                 .filter(|&c| match c {
                                     TreeNodeType::Small(_) => {
-                                        v.clone().into_iter().filter(|n| *n == *c).count() == 0
+                                        let mut m: HashMap<TreeNodeType, usize> = HashMap::new();
+                                        for x in v.clone().into_iter().filter(|a| match a {
+                                            TreeNodeType::Small(_) => true,
+                                            _ => false,
+                                        }) {
+                                            *m.entry(x).or_default() += 1;
+                                        }
+
+                                        m.values().all(|&count| count < 2) || m.get(c).is_none()
+
+                                        // v.clone().into_iter().filter(|n| *n == *c).count() == 0
                                     }
                                     TreeNodeType::Start => false,
                                     _ => true,
