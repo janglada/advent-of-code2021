@@ -27,10 +27,33 @@ pub fn parse(input: String) -> String {
 #[derive(PartialEq)]
 pub enum PacketType {
     Type4(u64),
-    Operator(Vec<Packet>),
+    Operator(OperatorType, Vec<Packet>),
+}
+#[derive(PartialEq)]
+pub enum OperatorType {
+    Sum,
+    Product,
+    Minimum,
+    Maximum,
+    GreaterThan,
+    LessThan,
+    EqualTo,
 }
 
-enum OperatorType {}
+impl OperatorType {
+    fn from(v: u32) -> OperatorType {
+        match v {
+            0 => OperatorType::Sum,
+            1 => OperatorType::Product,
+            2 => OperatorType::Minimum,
+            3 => OperatorType::Maximum,
+            5 => OperatorType::GreaterThan,
+            6 => OperatorType::LessThan,
+            7 => OperatorType::EqualTo,
+            _ => panic!("Unknown operator {}", v),
+        }
+    }
+}
 
 #[derive(PartialEq)]
 pub struct Packet {
@@ -80,7 +103,7 @@ impl<'a> Packet {
                         );
                         PacketType::Type4(u64::from_str_radix(s.as_str(), 2).unwrap())
                     }
-                    _ => {
+                    op_type => {
                         println!("READ OPERATOR PACKET");
                         let length_id = packet_parser.read_u32(1);
 
@@ -119,7 +142,7 @@ impl<'a> Packet {
                             }
                         };
 
-                        PacketType::Operator(packets)
+                        PacketType::Operator(OperatorType::from(op_type), packets)
                     }
                 };
                 if root {
@@ -141,16 +164,55 @@ impl<'a> Packet {
         }
     }
 
-    pub fn score_all(packets: &Vec<Packet>) -> u32 {
-        packets.iter().map(|p| p.score()).sum()
+    pub fn score_all(packets: &Vec<Packet>) -> u64 {
+        packets.iter().map(|p| p.score_part2()).sum()
     }
 
-    pub fn score(&self) -> u32 {
+    pub fn score_part1(&self) -> u32 {
         let score = match &self.packet_type {
             PacketType::Type4(_) => 0,
-            PacketType::Operator(op) => op.iter().map(|p| p.score()).sum(),
+            PacketType::Operator(op, children) => children.iter().map(|p| p.score_part1()).sum(),
         };
         score + self.version
+    }
+
+    pub fn score_part2(&self) -> u64 {
+        match &self.packet_type {
+            PacketType::Type4(value) => *value,
+            PacketType::Operator(op, children) => match op {
+                OperatorType::Sum => children.iter().map(|p| p.score_part2()).sum(),
+                OperatorType::Product => children.iter().map(|p| p.score_part2()).product(),
+                OperatorType::Minimum => children.iter().map(|p| p.score_part2()).min().unwrap(),
+                OperatorType::Maximum => children.iter().map(|p| p.score_part2()).max().unwrap(),
+                OperatorType::GreaterThan => {
+                    let first = children.get(0).unwrap().score_part2();
+                    let second = children.get(1).unwrap().score_part2();
+                    if first > second {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                OperatorType::LessThan => {
+                    let first = children.get(0).unwrap().score_part2();
+                    let second = children.get(1).unwrap().score_part2();
+                    if first < second {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                OperatorType::EqualTo => {
+                    let first = children.get(0).unwrap().score_part2();
+                    let second = children.get(1).unwrap().score_part2();
+                    if first == second {
+                        1
+                    } else {
+                        0
+                    }
+                }
+            },
+        }
     }
 }
 
