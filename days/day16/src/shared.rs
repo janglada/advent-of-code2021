@@ -1,4 +1,4 @@
-use std::thread::sleep;
+use std::io::Write;
 
 pub fn parse(input: String) -> String {
     input
@@ -26,7 +26,7 @@ pub fn parse(input: String) -> String {
 }
 #[derive(PartialEq)]
 pub enum PacketType {
-    Type4(u32),
+    Type4(u64),
     Operator(Vec<Packet>),
 }
 
@@ -39,67 +39,118 @@ pub struct Packet {
 }
 
 impl<'a> Packet {
-    pub fn read_packets(s: &'a str) -> Vec<Packet> {
+    pub fn read_packets(s: &'a str, root: bool) -> Vec<Packet> {
         let mut packets = Vec::new();
         let mut packet_parser = PacketParser::new(s);
 
         while let Some(i) = packet_parser.peek(1) {
-            packets.push(Packet::from(&mut packet_parser));
+            match Packet::from(&mut packet_parser, root) {
+                None => {
+                    break;
+                }
+                Some(p) => {
+                    packets.push(p);
+                }
+            }
         }
         packets
     }
 
-    pub fn from(packet_parser: &mut PacketParser) -> Packet {
-        let version = u32::from_str_radix(packet_parser.read(3).unwrap(), 2).unwrap();
-        let type_id = u32::from_str_radix(packet_parser.read(3).unwrap(), 2).unwrap();
+    pub fn from(packet_parser: &mut PacketParser, root: bool) -> Option<Packet> {
+        match packet_parser.peek(1) {
+            None => None,
+            Some(_) => {
+                println!("READ VERSION AND TYPE");
+                let version = packet_parser.read_u32(3);
+                let type_id = packet_parser.read_u32(3);
 
-        let packet_type = match type_id {
-            4 => {
-                let mut is_last = false;
-                let mut s = String::new();
-                while !is_last {
-                    is_last = packet_parser.read(1).unwrap().parse::<u32>().ok().unwrap() == 0;
-                    s.push_str(packet_parser.read(4).unwrap());
-                }
+                let packet_type = match type_id {
+                    4 => {
+                        println!("READ LITERAL PACKET");
+                        let mut is_last = false;
+                        let mut s = String::new();
+                        while !is_last {
+                            is_last = packet_parser.read_u32(1) == 0;
+                            s.push_str(packet_parser.read(4).unwrap());
+                        }
 
-                while let Some(i) = packet_parser.peek(1) {
-                    println!("WHILE {}", i);
-                    if i != "0" {
-                        break;
-                    }
-                }
-
-                PacketType::Type4(u32::from_str_radix(s.as_str(), 2).unwrap())
-            }
-            operator => {
-                let length_id = packet_parser.read(1).unwrap().parse::<u32>().ok().unwrap();
-
-                let packets = match length_id {
-                    0 => {
-                        let sub_packet_bits_len =
-                            usize::from_str_radix(packet_parser.read(15).unwrap(), 2).unwrap();
-                        let sub_packet_bits = packet_parser.read(sub_packet_bits_len);
-                        Packet::read_packets(sub_packet_bits.unwrap())
-                    }
-                    1 => {
-                        let sub_packet_bits_len =
-                            u32::from_str_radix(packet_parser.read(11).unwrap(), 2).unwrap();
-
-                        Packet::read_packets(packet_parser.read_all().unwrap())
+                        println!(
+                            "GOT LITERAL PACKET {}",
+                            u64::from_str_radix(s.as_str(), 2).unwrap()
+                        );
+                        PacketType::Type4(u64::from_str_radix(s.as_str(), 2).unwrap())
                     }
                     _ => {
-                        panic!("Unexpected")
+                        println!("READ OPERATOR PACKET");
+                        let length_id = packet_parser.read_u32(1);
+
+                        let packets = match length_id {
+                            0 => {
+                                let sub_packet_bits_len: usize =
+                                    packet_parser.read_u32(15).try_into().unwrap();
+                                let sub_packet_bits = packet_parser.read(sub_packet_bits_len);
+                                println!(
+                                    "  READING SUBPACKETS LENGTH TYPE 0. Sub packets bits length {}",
+                                    sub_packet_bits_len
+                                );
+                                Packet::read_packets(sub_packet_bits.unwrap(), false)
+                            }
+                            1 => {
+                                let sub_packet_count = packet_parser.read_u32(11);
+                                let mut v = Vec::new();
+                                println!(
+                                    "  READING SUBPACKETS LENGTH TYPE 1. There are  {} subpackets",
+                                    sub_packet_count
+                                );
+                                for i in 0..sub_packet_count {
+                                    match Packet::from(packet_parser, false) {
+                                        None => {
+                                            break;
+                                        }
+                                        Some(p) => {
+                                            v.push(p);
+                                        }
+                                    }
+                                }
+                                v
+                            }
+                            _ => {
+                                panic!("Unexpected")
+                            }
+                        };
+
+                        PacketType::Operator(packets)
                     }
                 };
+                if root {
+                    while let Some(i) = packet_parser.peek(1) {
+                        // println!(" i = {}  {}", i, i.parse::<u32>().ok().unwrap() != 0);
+                        if i.parse::<u32>().ok().unwrap() != 0 {
+                            break;
+                        }
+                        println!("SKIPPING 0");
+                        packet_parser.read(1);
+                    }
+                }
 
-                PacketType::Operator(packets)
+                Some(Packet {
+                    version,
+                    packet_type,
+                })
             }
-        };
-
-        Packet {
-            version,
-            packet_type,
         }
+    }
+
+    pub fn score_all(packets: &Vec<Packet>) -> u32 {
+        packets.iter().map(|p| p.score()).sum()
+    }
+
+    pub fn score(&self) -> u32 {
+        let score = match &self.packet_type {
+            PacketType::Type4(_) => 0,
+            PacketType::Operator(op) => op.iter().map(|p| p.score()).sum(),
+        };
+        score + self.version
     }
 }
 
@@ -117,17 +168,29 @@ impl<'a> PacketParser<'a> {
     }
 
     pub fn read(&mut self, n: usize) -> Option<&str> {
-        if self.chars.len() <= self.position + n {
-            None
+        if self.chars.len() < self.position + n {
+            panic!(
+                "Trying to read beyond chars length chars = {}, pos = {}, n = {}",
+                self.chars.len(),
+                self.position,
+                n
+            );
         } else {
             let s = &self.chars[self.position..self.position + n];
+            let prev = self.position;
             self.position = self.position + n;
+            println!("{}", self.chars);
+            println!("{}{}", " ".repeat(prev), "^".repeat(n));
             Some(s)
         }
     }
 
+    pub fn read_u32(&mut self, n: usize) -> u32 {
+        u32::from_str_radix(self.read(n).unwrap(), 2).ok().unwrap()
+    }
+
     pub fn read_all(&mut self) -> Option<&str> {
-        if self.chars.len() <= self.position {
+        if self.chars.len() < self.position {
             None
         } else {
             let s = &self.chars[self.position..self.chars.len()];
@@ -137,7 +200,7 @@ impl<'a> PacketParser<'a> {
     }
 
     pub fn peek(&self, n: usize) -> Option<&str> {
-        if self.chars.len() <= self.position + n {
+        if self.chars.len() < self.position + n {
             None
         } else {
             let s = &self.chars[self.position..self.position + n];
